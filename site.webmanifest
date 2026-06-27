@@ -1,0 +1,14 @@
+{
+  "name": "JobID",
+  "short_name": "JobID",
+  "description": "JobID makes work computable — the open data standard for skills, tasks and context.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060f1c",
+  "theme_color": "#0a182a",
+  "icons": [
+    { "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/favicon-32.png", "type": "image/png", "sizes": "32x32" },
+    { "src": "/apple-touch-icon.png", "type": "image/png", "sizes": "180x180" }
+  ]
+}
