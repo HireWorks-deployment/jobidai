@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index, follow">
+<title>They guess. We compute. — Why semantic job matching failed for 20 years | JobID</title>
+<meta name="description" content="The most important matching problem in the economy still runs on guessing job titles. Why every attempt to fix it has failed — and the one structural change that doesn't.">
+<link rel="canonical" href="https://jobid.ai/thesis.html">
+<meta name="theme-color" content="#0a182a">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="JobID">
+<meta property="og:locale" content="en">
+<meta property="og:url" content="https://jobid.ai/thesis.html">
+<meta property="og:title" content="They guess. We compute. — Why semantic job matching failed for 20 years">
+<meta property="og:description" content="Why every attempt to fix job matching has failed — and the one structural change that doesn't.">
+<meta property="og:image" content="https://jobid.ai/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="They guess. We compute. — Why semantic job matching failed for 20 years">
+<meta name="twitter:description" content="Why every attempt to fix job matching has failed — and the one structural change that doesn't.">
+<meta name="twitter:image" content="https://jobid.ai/og-image.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Article",
+  "headline": "They guess. We compute. — Why semantic job matching failed for 20 years, and what finally unlocks it",
+  "description": "Why every attempt to fix job matching has failed — and the one structural change that doesn't.",
+  "image": "https://jobid.ai/og-image.png",
+  "author": [
+    { "@type": "Person", "name": "Michael von Hirschfeld", "sameAs": "https://www.linkedin.com/in/michaelvonhirschfeld/" }
+  ],
+  "publisher": { "@type": "Organization", "name": "JobID", "logo": { "@type": "ImageObject", "url": "https://jobid.ai/apple-touch-icon.png" } },
+  "mainEntityOfPage": "https://jobid.ai/thesis.html",
+  "inLanguage": "en"
+}
+</script>
+<style>
+  :root{
+    --navy:#0a182a; --navy-deep:#060f1c; --blue:#0058ff; --blue-bright:#1f86ff; --cyan:#8be9ff;
+    --fg:#f2f7ff; --fg-soft:#cfe0f7; --muted:#9fb1cc; --muted-deep:#6f86a6;
+    --line:rgba(120,160,220,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--navy-deep);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+  #bg-graph{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;}
+  .veil{position:fixed;inset:0;z-index:1;pointer-events:none;background:radial-gradient(90% 70% at 50% 20%, rgba(6,15,28,0) 35%, rgba(6,15,28,.7) 100%);}
+  .grad{background:linear-gradient(120deg,var(--cyan),#37bef4 45%,var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:15px 30px;background:rgba(10,24,42,.55);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);}
+  .nav a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;}
+  .nav .brand{font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--fg);}
+  .nav .right a{margin-left:22px;}
+  .nav .right a:hover{color:var(--fg);}
+  .nav .navcta{border:1px solid rgba(139,233,255,.3);border-radius:9px;padding:9px 16px;color:var(--fg);}
+  main{position:relative;z-index:2;max-width:720px;margin:0 auto;padding:130px 28px 90px;}
+  .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan);opacity:.85;font-weight:600;margin-bottom:20px;}
+  h1{font-size:clamp(30px,4.4vw,42px);line-height:1.12;letter-spacing:-.02em;font-weight:700;margin-bottom:20px;}
+  .standfirst{font-size:clamp(17px,1.9vw,20px);color:var(--fg-soft);margin-bottom:14px;}
+  .byline{font-size:13px;color:var(--muted-deep);border-bottom:1px solid var(--line);padding-bottom:26px;margin-bottom:36px;}
+  h2{font-size:clamp(21px,2.6vw,26px);line-height:1.25;letter-spacing:-.01em;font-weight:700;margin:40px 0 14px;}
+  p{color:var(--muted);font-size:clamp(16px,1.6vw,18px);margin-bottom:18px;}
+  p strong, p b{color:var(--fg-soft);}
+  em{color:var(--fg-soft);font-style:italic;}
+  .pull{font-size:clamp(22px,3vw,30px);font-weight:700;letter-spacing:-.02em;color:var(--fg);margin:34px 0;}
+  .pull .grad{font-style:normal;}
+  .cta{margin-top:46px;padding:30px;border:1px solid rgba(139,233,255,.16);border-radius:16px;background:rgba(0,88,255,.06);}
+  .cta p{color:var(--fg-soft);margin-bottom:18px;}
+  .btn{display:inline-block;background:linear-gradient(120deg,var(--blue),var(--blue-bright));color:#fff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 26px;border-radius:11px;box-shadow:0 8px 30px rgba(0,88,255,.34);}
+  footer{position:relative;z-index:2;border-top:1px solid var(--line);padding:40px 28px;text-align:center;color:var(--muted-deep);font-size:13px;}
+  footer a{color:var(--cyan);text-decoration:none;}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto;}}
+</style>
+</head>
+<body>
+<canvas id="bg-graph"></canvas>
+<div class="veil"></div>
+
+<nav class="nav">
+  <a class="brand" href="/">Job<span class="grad">ID</span></a>
+  <div class="right">
+    <a href="/">← Back to site</a>
+    <a class="navcta" href="mailto:mvh@jobid.com?subject=JobID%20%E2%80%94%20investor%20inquiry">Contact</a>
+  </div>
+</nav>
+
+<main>
+  <div class="eyebrow">Thesis</div>
+  <h1>They guess. We compute.</h1>
+  <p class="standfirst">Why semantic job matching failed for twenty years — and the one structural change that finally unlocks it.</p>
+  <div class="byline">By Michael von Hirschfeld, Co-Founder, JobID</div>
+
+  <p>Everyone has felt it. You search for a job, and by the third page of results the machine has stopped understanding you — roles that have nothing to do with what you asked. You give up. Not because the right job isn't out there, but because you can't find it, and you can't trust the search.</p>
+
+  <p>Multiply that across the economy and it has a price tag. Skills mismatch costs around <strong>6% of GDP</strong>, and by 2030 up to <strong>$15 trillion</strong> in lost output (BCG). The most important matching problem in the economy still runs on guessing job titles.</p>
+
+  <h2>It's not for lack of trying</h2>
+  <p>For twenty years this looked solvable. Dozens of funded startups and the biggest platforms on earth have chased semantic job matching. Most were quietly acquired: Bright into LinkedIn, Trovix into Monster, Textkernel into Bullhorn for €300M, Eightfold to a $2.1B valuation. The demand was never in doubt — and notice the pattern: the giants didn't crush this category, they <em>bought</em> it.</p>
+  <p>And yet the experience never fundamentally improved. Why?</p>
+
+  <h2>The structural flaw: everyone guesses</h2>
+  <p>Because almost every system works the same way — top-down. Take a job, let AI break it into data, then estimate how similar two things are. Guessing has no floor. Change one word in a posting and the results move. It can't be exact, and it can't explain itself. You get ranked guesses, not answers — which is why search scatters into noise, and why bolting "more AI" onto the same approach just produces more confident noise.</p>
+
+  <h2>The unlock: compute, don't guess</h2>
+  <p>JobID works the other way around — bottom-up. Underneath everything sits one shared model of work: skills, tasks, context. Every job, CV, training and search is translated <em>into</em> that single model. We don't estimate whether two things are similar — we compute it against the same ground truth. The result is matching that is exact, explainable, and never breaks into irrelevance, with a transparent score and the precise reason behind every match.</p>
+  <p>Think Nutrition Facts. Once every product is described in the same standard units, you can finally compare and rank them. JobID does that for work.</p>
+  <p class="pull"><span class="grad">They guess. We compute.</span></p>
+  <p>For a person, that means discovery that understands what you can actually do — not the titles you have to guess — and a search that quietly becomes your profile, so the right work starts finding you. For a company, the same engine matches employees to new roles, trainings and career paths, across departments and languages.</p>
+
+  <h2>Why now</h2>
+  <p>Work is being rewritten by AI. Titles inflate, skills shift monthly — and AI needs structured, computable work data that simply doesn't exist yet. Whoever owns the shared model of work owns a layer that LinkedIn, SAP and Indeed all need and none of them has built. It's a ~$870B market today, heading to $1.7T by 2030, with no infrastructure player yet.</p>
+
+  <h2>Where we are</h2>
+  <p>This isn't a pitch for an idea. The hard part — the research — is done: four years of R&amp;D, a working engine with millisecond retrieval out of an ontology built at exactly the right depth, a working prototype, and a Letter of Intent from Siemens. What's left is execution.</p>
+  <p>We're looking for the investors who want to be early on the open data standard for work — before it becomes obvious.</p>
+
+  <div class="cta">
+    <p>See it beat the incumbents live — and see the numbers.</p>
+    <a class="btn" href="mailto:mvh@jobid.com?subject=JobID%20%E2%80%94%20investor%20inquiry">mvh@jobid.com&nbsp;&nbsp;→</a>
+  </div>
+</main>
+
+<footer>
+  Job<span class="grad">ID</span> &nbsp;·&nbsp; <a href="/impressum.html">Impressum</a> &nbsp;·&nbsp; <a href="/datenschutz.html">Datenschutz</a> &nbsp;·&nbsp; © 2026 JobID
+</footer>
+
+<script>
+(function(){
+  var canvas=document.getElementById('bg-graph'), ctx=canvas.getContext('2d');
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var DPR=Math.min(window.devicePixelRatio||1,2),W,H,nodes=[],raf;
+  function size(){W=window.innerWidth;H=window.innerHeight;canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+  function build(){var n=Math.round(Math.max(40,Math.min(90,W*H/16000)));nodes=[];for(var i=0;i<n;i++){nodes.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*0.18,vy:(Math.random()-.5)*0.18,r:Math.random()*1.5+1.1,pulse:Math.random()<0.16,ph:Math.random()*Math.PI*2});}}
+  function draw(t){ctx.clearRect(0,0,W,H);var maxD=Math.min(170,W/7);
+    for(var i=0;i<nodes.length;i++){var a=nodes[i];if(!reduce){a.x+=a.vx;a.y+=a.vy;if(a.x<0||a.x>W)a.vx*=-1;if(a.y<0||a.y>H)a.vy*=-1;}
+      for(var j=i+1;j<nodes.length;j++){var b=nodes[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.sqrt(dx*dx+dy*dy);if(d<maxD){var al=(1-d/maxD)*0.13;ctx.strokeStyle='rgba(110,180,255,'+al+')';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);ctx.stroke();}}}
+    for(var k=0;k<nodes.length;k++){var p=nodes[k],glow=0,rr=p.r;if(p.pulse){var s=(Math.sin(t/950+p.ph)+1)/2;glow=s;rr=p.r+s*1.3;}
+      if(p.pulse&&glow>0.02){ctx.beginPath();ctx.fillStyle='rgba(139,233,255,'+(0.08+glow*0.2)+')';ctx.arc(p.x,p.y,rr+5+glow*5,0,Math.PI*2);ctx.fill();}
+      ctx.beginPath();ctx.fillStyle=p.pulse?'rgba(139,233,255,'+(0.55+glow*0.4)+')':'rgba(125,180,248,0.5)';ctx.arc(p.x,p.y,rr,0,Math.PI*2);ctx.fill();}
+    if(!reduce)raf=requestAnimationFrame(draw);}
+  function start(){size();build();cancelAnimationFrame(raf);raf=requestAnimationFrame(draw);if(reduce)draw(0);}
+  start();var to;window.addEventListener('resize',function(){clearTimeout(to);to=setTimeout(start,160);});
+  document.addEventListener('visibilitychange',function(){if(document.hidden){cancelAnimationFrame(raf);}else if(!reduce){raf=requestAnimationFrame(draw);}});
+})();
+</script>
+</body>
+</html>
