@@ -47,8 +47,8 @@
       "email": "post@jobid.com",
       "description": "JobID makes work computable — the open data standard for skills, tasks and context. A bottom-up engine that translates every job, CV, training and search into one shared model for exact, explainable matching.",
       "founder": [
-        { "@type": "Person", "name": "Michael von Hirschfeld" },
-        { "@type": "Person", "name": "Henning Haeske" }
+        { "@type": "Person", "name": "Michael von Hirschfeld", "sameAs": "https://www.linkedin.com/in/michaelvonhirschfeld/" },
+        { "@type": "Person", "name": "Henning Haeske", "sameAs": "https://www.linkedin.com/in/henning-haeske-765b7368/" }
       ],
       "address": {
         "@type": "PostalAddress",
@@ -147,6 +147,8 @@
   .card{background:var(--card); border:1px solid var(--card-line); border-radius:14px; padding:24px;}
   .card .tag{font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--cyan); opacity:.85; margin-bottom:12px; font-weight:600;}
   .card p{font-size:15px;}
+  .card .li{display:inline-block;margin-top:14px;font-size:13px;font-weight:600;color:var(--cyan);text-decoration:none;}
+  .card .li:hover{text-decoration:underline;}
   @media(max-width:760px){ .cards{grid-template-columns:1fr;} section{padding:84px 0;} }
 
   /* compare (head to head) */
@@ -373,10 +375,12 @@
         <div class="card reveal">
           <h3>Michael von Hirschfeld</h3>
           <p>17 years placing executives and key roles. Lived this pain firsthand — the reason JobID exists.</p>
+          <a class="li" href="https://www.linkedin.com/in/michaelvonhirschfeld/" target="_blank" rel="noopener noreferrer">LinkedIn&nbsp;↗</a>
         </div>
         <div class="card reveal">
           <h3>Henning Haeske</h3>
           <p>Built the tech, data and AI. The engine, the ontology, the millisecond retrieval.</p>
+          <a class="li" href="https://www.linkedin.com/in/henning-haeske-765b7368/" target="_blank" rel="noopener noreferrer">LinkedIn&nbsp;↗</a>
         </div>
       </div>
       <p class="reveal" style="margin-top:26px;">We're the rare team that felt the problem and cracked the research.</p>
