@@ -1,0 +1,347 @@
+name: Deploy to IONOS
+
+# Auto-Deploy bei Push auf main + manueller Trigger via GitHub UI
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Verhindert parallele Deploys (Schutz vor Race Conditions bei Upload)
+concurrency:
+  group: ionos-prod
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: SFTP-Sync nach IONOS Webspace
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v5
+        with:
+          # Volle History brauchen wir für `git diff` zwischen beliebigen Commits
+          # (auch bei Multi-Commit-Pushes)
+          fetch-depth: 0
+
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+
+      # ============================================================
+      # SCHRITT 1: Welcher Modus?
+      # delta: nur geänderte Files hochladen (Normal-Push)
+      # full:  komplette Mirror (initialer Push oder workflow_dispatch)
+      # skip:  nichts Publizierbares geändert
+      # ============================================================
+      - name: Determine deploy mode + collect changed files
+        id: mode
+        env:
+          GH_EVENT: ${{ github.event_name }}
+          GH_BEFORE: ${{ github.event.before }}
+          GH_AFTER: ${{ github.event.after }}
+        run: |
+          python3 << 'PYEOF'
+          import os, subprocess, sys
+
+          ZERO = "0000000000000000000000000000000000000000"
+          event = os.environ.get("GH_EVENT", "")
+          before = os.environ.get("GH_BEFORE", "")
+          after = os.environ.get("GH_AFTER", "HEAD")
+
+          gh_output = os.environ.get("GITHUB_OUTPUT", "/dev/null")
+
+          def set_output(key, value):
+              with open(gh_output, "a") as f:
+                  f.write(f"{key}={value}\n")
+
+          # ===== Mode-Entscheidung =====
+          if event == "workflow_dispatch":
+              print("MODE = full (manual workflow_dispatch — kein vorheriger Commit zum Diffen)")
+              set_output("mode", "full")
+              sys.exit(0)
+
+          if not before or before == ZERO:
+              print(f"MODE = full (initialer Push — before='{before}')")
+              set_output("mode", "full")
+              sys.exit(0)
+
+          # ===== Normal-Push: git diff zwischen before und after =====
+          print(f"Push-Range: {before[:8]}..{after[:8]}")
+          try:
+              added_modified = subprocess.check_output(
+                  ["git", "diff", "--name-only", "--diff-filter=ACMR", before, after],
+                  stderr=subprocess.STDOUT,
+              ).decode("utf-8", errors="replace").strip().splitlines()
+          except subprocess.CalledProcessError as e:
+              print(f"!! git diff fehlgeschlagen: {e.returncode}")
+              print(e.output.decode(errors='replace'))
+              print("Fallback: MODE = full")
+              set_output("mode", "full")
+              sys.exit(0)
+
+          # ===== Exclude-Filter (konsistent mit dem alten lftp-mirror) =====
+          EXCLUDE_PREFIXES = (
+              ".git/", ".github/",
+          )
+          EXCLUDE_PATH_PARTS = (
+              "/_gender_backup/", "/_pgbackup/", "/_recherche/",
+              "/_orig_backup/", "/_pre_gender_backup/",
+          )
+          EXCLUDE_TOPLEVEL = {
+              "DEPLOY_SETUP.md", "README.md", "PHP-BACKEND-README.md",
+              "deploy.sh", "deploy-auto.sh", ".gitignore",
+          }
+          EXCLUDE_SUFFIX = (".bak", ".swp", ".DS_Store")
+
+          def is_publishable(f):
+              if not f:
+                  return False
+              if f in EXCLUDE_TOPLEVEL:
+                  return False
+              if any(f.startswith(p) for p in EXCLUDE_PREFIXES):
+                  return False
+              if any(p in f"/{f}" for p in EXCLUDE_PATH_PARTS):
+                  return False
+              if any(f.endswith(s) for s in EXCLUDE_SUFFIX):
+                  return False
+              return True
+
+          upload_list = [f for f in added_modified if is_publishable(f) and os.path.isfile(f)]
+
+          print(f"\n=== git diff: {len(added_modified)} files changed ===")
+          if added_modified:
+              for f in added_modified[:30]:
+                  print(f"  raw: {f}")
+              if len(added_modified) > 30:
+                  print(f"  ... ({len(added_modified) - 30} weitere)")
+
+          print(f"\n=== Nach Filter: {len(upload_list)} files publizierbar ===")
+          for f in upload_list:
+              print(f"  upload: {f}")
+
+          # Liste auf Disk schreiben für nachfolgenden Step
+          with open("/tmp/upload_list.txt", "w", encoding="utf-8") as f:
+              f.write("\n".join(upload_list))
+              if upload_list:
+                  f.write("\n")
+
+          if not upload_list:
+              print("\nMODE = skip (keine publizierbaren Änderungen)")
+              set_output("mode", "skip")
+          else:
+              print(f"\nMODE = delta ({len(upload_list)} files)")
+              set_output("mode", "delta")
+              set_output("upload_count", str(len(upload_list)))
+          PYEOF
+
+      # ============================================================
+      # SCHRITT 2a: DELTA — nur geänderte Files hochladen
+      # ============================================================
+      - name: Deploy delta via SFTP (lftp put)
+        if: steps.mode.outputs.mode == 'delta'
+        env:
+          SFTP_HOST: ${{ secrets.FTP_HOST }}
+          SFTP_USER: ${{ secrets.FTP_USERNAME }}
+          SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          SFTP_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          python3 << 'PYEOF'
+          import os, subprocess, sys, shlex
+
+          SFTP_HOST = os.environ["SFTP_HOST"]
+          SFTP_USER = os.environ["SFTP_USER"]
+          SFTP_PASS = os.environ["SFTP_PASS"]
+          SFTP_DIR = os.environ["SFTP_DIR"].rstrip("/")
+
+          with open("/tmp/upload_list.txt") as f:
+              files = [line.strip() for line in f if line.strip()]
+
+          if not files:
+              print("upload_list.txt ist leer — nichts zu tun")
+              sys.exit(0)
+
+          # Alle Verzeichnisse sammeln, die remote existieren müssen
+          dirs_needed = set()
+          for fp in files:
+              d = os.path.dirname(fp)
+              while d and d != ".":
+                  dirs_needed.add(d)
+                  d = os.path.dirname(d)
+
+          # Shallow-to-deep sortieren (sonst mkdir-Fehler bei verschachtelten Pfaden)
+          sorted_dirs = sorted(dirs_needed, key=lambda x: (x.count("/"), x))
+
+          # lftp-Script bauen
+          script_lines = [
+              "set sftp:auto-confirm yes",
+              "set net:max-retries 3",
+              "set net:timeout 30",
+              "set net:reconnect-interval-base 5",
+              # User/Pass über open kommandiert (URL würde Sonderzeichen escapen müssen)
+              f"open -u {shlex.quote(SFTP_USER)},{shlex.quote(SFTP_PASS)} sftp://{SFTP_HOST}",
+              f"cd {shlex.quote(SFTP_DIR)}",
+          ]
+
+          for d in sorted_dirs:
+              # -p creates parents, -f ignoriert "exists already"
+              script_lines.append(f"mkdir -p -f {shlex.quote(d)}")
+
+          for fp in files:
+              d = os.path.dirname(fp) or "."
+              if d == ".":
+                  script_lines.append(f"put {shlex.quote(fp)}")
+              else:
+                  script_lines.append(f"put -O {shlex.quote(d)} {shlex.quote(fp)}")
+
+          script_lines.append("bye")
+
+          script_path = "/tmp/lftp_delta.txt"
+          with open(script_path, "w") as f:
+              f.write("\n".join(script_lines) + "\n")
+
+          # Script printen OHNE Credentials (Security)
+          print("=== Delta-Upload-Plan ===")
+          print(f"Files: {len(files)}")
+          print(f"Verzeichnisse (mkdir): {len(sorted_dirs)}")
+          for fp in files:
+              print(f"  PUT  {fp}")
+
+          # Ausführen
+          print("\n=== lftp -f /tmp/lftp_delta.txt ===")
+          result = subprocess.run(
+              ["lftp", "-f", script_path],
+              capture_output=True, text=True,
+          )
+          # Output anzeigen
+          if result.stdout:
+              print("--- stdout ---")
+              print(result.stdout)
+          if result.stderr:
+              print("--- stderr ---")
+              print(result.stderr)
+          print(f"\nlftp exit code: {result.returncode}")
+          sys.exit(result.returncode)
+          PYEOF
+
+      # ============================================================
+      # SCHRITT 2b: FULL — komplette Mirror (initial / dispatch)
+      # ============================================================
+      - name: Deploy full via SFTP (lftp mirror)
+        if: steps.mode.outputs.mode == 'full'
+        env:
+          SFTP_HOST: ${{ secrets.FTP_HOST }}
+          SFTP_USER: ${{ secrets.FTP_USERNAME }}
+          SFTP_PASS: ${{ secrets.FTP_PASSWORD }}
+          SFTP_DIR: ${{ secrets.FTP_SERVER_DIR }}
+        run: |
+          echo "Full Mirror — entweder initialer Push oder workflow_dispatch"
+          lftp -c "
+          set sftp:auto-confirm yes
+          set net:max-retries 3
+          set net:timeout 30
+          set net:reconnect-interval-base 5
+          open -u '$SFTP_USER','$SFTP_PASS' sftp://$SFTP_HOST
+          mirror --reverse --verbose --no-perms \
+            --exclude-glob '.git/' \
+            --exclude-glob '.git/**' \
+            --exclude-glob '.github/' \
+            --exclude-glob '.github/**' \
+            --exclude-glob '**/.DS_Store' \
+            --exclude-glob '**/_pgbackup/' \
+            --exclude-glob '**/_pgbackup/**' \
+            --exclude-glob '**/_gender_backup/' \
+            --exclude-glob '**/_gender_backup/**' \
+            --exclude-glob '**/_recherche/' \
+            --exclude-glob '**/_recherche/**' \
+            --exclude-glob '**/_orig_backup/' \
+            --exclude-glob '**/_orig_backup/**' \
+            --exclude-glob '**/_pre_gender_backup/' \
+            --exclude-glob '**/_pre_gender_backup/**' \
+            --exclude-glob '**/*.bak' \
+            --exclude-glob '**/*.swp' \
+            --exclude-glob 'DEPLOY_SETUP.md' \
+            --exclude-glob 'README.md' \
+            --exclude-glob 'PHP-BACKEND-README.md' \
+            --exclude-glob 'deploy.sh' \
+            --exclude-glob 'deploy-auto.sh' \
+            --exclude-glob '.gitignore' \
+            ./ '$SFTP_DIR'
+          bye
+          "
+
+      # ============================================================
+      # SCHRITT 2c: SKIP
+      # ============================================================
+      - name: Skip deploy (nothing publishable changed)
+        if: steps.mode.outputs.mode == 'skip'
+        run: |
+          echo "Keine publizierbaren Änderungen in diesem Push — kein Deploy nötig"
+
+      # ============================================================
+      # SCHRITT 3: IndexNow-Ping (gleiche Datenbasis wie der Delta-Upload)
+      # ============================================================
+      - name: Ping IndexNow for changed HTML URLs
+        # Läuft nur bei push-Events. Nutzt /tmp/upload_list.txt wenn vorhanden,
+        # sonst Fallback auf eigenes git diff.
+        if: github.event_name == 'push' && steps.mode.outputs.mode != 'full'
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: |
+          python3 << 'PYEOF'
+          import json, urllib.request, urllib.error, sys, os
+
+          KEY = os.environ.get("INDEXNOW_KEY", "").strip()
+          if not KEY:
+              print("INDEXNOW_KEY secret nicht gesetzt — skip")
+              sys.exit(0)
+
+          if not os.path.exists("/tmp/upload_list.txt"):
+              print("Keine upload_list.txt — skip IndexNow")
+              sys.exit(0)
+
+          with open("/tmp/upload_list.txt") as f:
+              files = [line.strip() for line in f if line.strip()]
+
+          # Nur HTMLs an IndexNow melden
+          html_files = [f for f in files if f.endswith(".html")]
+          if not html_files:
+              print("Keine HTML-Änderungen — kein IndexNow-Ping")
+              sys.exit(0)
+
+          def to_url(f):
+              if f == "index.html":
+                  return "https://jobid.ai/"
+              if f == "en/index.html":
+                  return "https://jobid.ai/en/"
+              return f"https://jobid.ai/{f}"
+
+          urls = sorted({to_url(f) for f in html_files})
+
+          payload = {
+              "host": "jobid.ai",
+              "key": KEY,
+              "keyLocation": f"https://jobid.ai/{KEY}.txt",
+              "urlList": urls,
+          }
+          print(f"Pinging IndexNow für {len(urls)} URLs:")
+          for u in urls:
+              print(f"  - {u}")
+
+          req = urllib.request.Request(
+              "https://api.indexnow.org/IndexNow",
+              data=json.dumps(payload).encode("utf-8"),
+              headers={"Content-Type": "application/json; charset=utf-8"},
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  print(f"IndexNow response: HTTP {resp.status}")
+          except urllib.error.HTTPError as e:
+              body = e.read().decode("utf-8", errors="replace") if hasattr(e, "read") else ""
+              print(f"IndexNow HTTPError {e.code}: {e.reason}\nBody: {body}")
+          except Exception as e:
+              print(f"IndexNow connection error: {e}")
+          PYEOF
