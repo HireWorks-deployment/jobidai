@@ -43,6 +43,24 @@
   .reveal{opacity:0; transform:translateY(22px); transition:opacity .7s ease, transform .7s ease;}
   .reveal.in{opacity:1; transform:none;}
 
+  /* NAV */
+  section{scroll-margin-top:74px;}
+  .nav{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:15px 30px;background:rgba(10,24,42,.5);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);}
+  .nav .brand{font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--fg);text-decoration:none;}
+  .nav-menu{display:flex;gap:22px;list-style:none;align-items:center;}
+  .nav-menu a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;padding:6px 0;border-bottom:2px solid transparent;transition:color .2s,border-color .2s;white-space:nowrap;}
+  .nav-menu a:hover,.nav-menu a.active{color:var(--fg);border-bottom-color:var(--cyan);}
+  .nav-menu a.navcta{border:1px solid var(--card-line);border-radius:9px;padding:9px 16px;color:var(--fg);}
+  .nav-menu a.navcta:hover{background:rgba(0,88,255,.18);border-color:var(--cyan);border-bottom-color:var(--cyan);}
+  .nav-burger{display:none;background:transparent;border:none;color:var(--fg);cursor:pointer;padding:6px;}
+  @media(max-width:880px){
+    .nav-burger{display:inline-flex;}
+    .nav-menu{display:none;position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:rgba(10,24,42,.97);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);padding:6px 0;}
+    .nav.open .nav-menu{display:flex;}
+    .nav-menu a{padding:13px 30px;border-bottom:1px solid var(--line);}
+    .nav-menu a.navcta{border:none;border-radius:0;}
+  }
+
   /* HERO */
   .hero{min-height:92vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:80px 28px;}
   .wordmark{font-size:30px; font-weight:700; letter-spacing:-.02em; margin-bottom:44px;}
@@ -101,6 +119,22 @@
 <body>
 <canvas id="bg-graph"></canvas>
 <div class="veil"></div>
+
+<nav class="nav" id="nav">
+  <a class="brand" href="#hero">Job<span class="grad">ID</span></a>
+  <ul class="nav-menu" id="navMenu">
+    <li><a href="#broken">Problem</a></li>
+    <li><a href="#unlock">Solution</a></li>
+    <li><a href="#proof">Proof</a></li>
+    <li><a href="#business">Business</a></li>
+    <li><a href="#why">Market</a></li>
+    <li><a href="#team">Team</a></li>
+    <li><a class="navcta" href="#ask">Contact</a></li>
+  </ul>
+  <button class="nav-burger" id="navBurger" aria-label="Menü" aria-expanded="false">
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="13" x2="21" y2="13"/><line x1="3" y1="19" x2="21" y2="19"/></svg>
+  </button>
+</nav>
 
 <div class="page">
 
@@ -294,6 +328,7 @@
 <footer>
   <div class="wordmark" style="font-size:20px; margin-bottom:14px;">Job<span class="grad">ID</span></div>
   <div>Investor inquiries: <a href="mailto:mvh@jobid.com">mvh@jobid.com</a></div>
+  <div style="margin-top:12px;"><a href="/impressum.html">Impressum</a> &nbsp;·&nbsp; <a href="/datenschutz.html">Datenschutz</a></div>
   <div style="margin-top:10px;">© 2026 JobID</div>
 </footer>
 
@@ -304,59 +339,62 @@
   var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var DPR=Math.min(window.devicePixelRatio||1,2);
   var W,H,nodes=[],raf;
-  var chaos=0.35, chaosTarget=0.35;           // 0 = ordered, 1 = tangled
+  var chaos=0.2, chaosTarget=0.2;             // 0 = structure (lines), 1 = chaos (only circles)
 
   function size(){
     W=window.innerWidth; H=window.innerHeight;
     canvas.width=W*DPR; canvas.height=H*DPR; ctx.setTransform(DPR,0,0,DPR,0,0);
   }
   function build(){
-    var n=Math.round(Math.max(40,Math.min(95,W*H/16000)));
+    var n=Math.round(Math.max(60,Math.min(150,W*H/11000)));
     nodes=[];
     for(var i=0;i<n;i++){
       nodes.push({
         x:Math.random()*W, y:Math.random()*H,
         hx:Math.random()*W, hy:Math.random()*H,      // calm "home" anchor
         vx:(Math.random()-.5), vy:(Math.random()-.5),
-        r:Math.random()*1.5+1.0,
-        pulse:Math.random()<0.15, ph:Math.random()*Math.PI*2
+        r:Math.random()*1.8+1.2,
+        pulse:Math.random()<0.2, ph:Math.random()*Math.PI*2
       });
     }
   }
   function draw(t){
-    chaos += (chaosTarget-chaos)*0.04;
+    chaos += (chaosTarget-chaos)*0.035;          // smooth → lines visibly form/dissolve
+    var structure=1-chaos;
     ctx.clearRect(0,0,W,H);
-    var maxD=Math.min(170,W/7);
-    var speed=0.12+chaos*0.5;
+    var maxD=Math.min(185,W/6.5);
+    var speed=0.14+chaos*0.75;                    // more energetic / scattered in chaos
     for(var i=0;i<nodes.length;i++){
       var a=nodes[i];
       if(!reduce){
-        // tangled: free drift · ordered: ease toward home anchor
         a.x += a.vx*speed; a.y += a.vy*speed;
-        a.x += (a.hx-a.x)*0.006*(1-chaos);
-        a.y += (a.hy-a.y)*0.006*(1-chaos);
+        // structure pulls nodes toward a calm anchor → tidy lattice
+        a.x += (a.hx-a.x)*0.011*structure;
+        a.y += (a.hy-a.y)*0.011*structure;
         if(a.x<0||a.x>W)a.vx*=-1; if(a.y<0||a.y>H)a.vy*=-1;
       }
-      for(var j=i+1;j<nodes.length;j++){
-        var b=nodes[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.sqrt(dx*dx+dy*dy);
-        if(d<maxD){
-          var al=(1-d/maxD)*(0.10+(1-chaos)*0.12);
-          // ordered → cooler blue; tangled → slightly warmer/desaturated
-          var col = chaos>0.6 ? '150,150,180' : '95,160,235';
-          ctx.strokeStyle='rgba('+col+','+al+')';
-          ctx.lineWidth=0.7; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+      // LINES ONLY IN STRUCTURE — they grow in as chaos drops, vanish in chaos
+      if(structure>0.05){
+        for(var j=i+1;j<nodes.length;j++){
+          var b=nodes[j],dx=a.x-b.x,dy=a.y-b.y,d=Math.sqrt(dx*dx+dy*dy);
+          if(d<maxD){
+            var al=(1-d/maxD)*structure*structure*0.40;
+            ctx.strokeStyle='rgba(110,180,255,'+al+')';
+            ctx.lineWidth=0.9; ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+          }
         }
       }
     }
+    // circles are always drawn (intensity up overall)
     for(var k=0;k<nodes.length;k++){
       var p=nodes[k],glow=0,rr=p.r;
-      if(p.pulse){var s=(Math.sin(t/950+p.ph)+1)/2; glow=s; rr=p.r+s*1.3;}
+      if(p.pulse){var s=(Math.sin(t/900+p.ph)+1)/2; glow=s; rr=p.r+s*1.5;}
       if(p.pulse&&glow>0.02){
-        ctx.beginPath(); ctx.fillStyle='rgba(139,233,255,'+(0.08+glow*0.20)+')';
-        ctx.arc(p.x,p.y,rr+5+glow*5,0,Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.fillStyle='rgba(139,233,255,'+(0.10+glow*0.26)+')';
+        ctx.arc(p.x,p.y,rr+6+glow*6,0,Math.PI*2); ctx.fill();
       }
       ctx.beginPath();
-      ctx.fillStyle=p.pulse?'rgba(139,233,255,'+(0.55+glow*0.4)+')':'rgba(120,175,245,0.5)';
+      ctx.fillStyle=p.pulse?'rgba(139,233,255,'+(0.66+glow*0.34)+')':'rgba(130,185,250,0.66)';
       ctx.arc(p.x,p.y,rr,0,Math.PI*2); ctx.fill();
     }
     if(!reduce) raf=requestAnimationFrame(draw);
@@ -369,8 +407,8 @@
     if(document.hidden){cancelAnimationFrame(raf);} else if(!reduce){raf=requestAnimationFrame(draw);}
   });
 
-  // Story-reactive: tangle on "broken market", order on "unlock"
-  var targets={broken:0.95, enemy:0.8, unlock:0.05, proof:0.2};
+  // Story-reactive: problem blocks = chaos (only circles), solution blocks = structure (lines form)
+  var targets={hero:0.25, broken:1.0, enemy:0.9, unlock:0.0, proof:0.1, business:0.15, why:0.25, team:0.15, ask:0.05};
   var io=new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
@@ -388,6 +426,27 @@
     entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('in'); rev.unobserve(e.target); } });
   },{threshold:0.15});
   document.querySelectorAll('.reveal').forEach(function(el){ rev.observe(el); });
+})();
+</script>
+
+<script>
+(function(){
+  var nav=document.getElementById('nav'), burger=document.getElementById('navBurger'), menu=document.getElementById('navMenu');
+  if(burger){ burger.addEventListener('click',function(){ nav.classList.toggle('open'); burger.setAttribute('aria-expanded', nav.classList.contains('open')); }); }
+  var links={};
+  if(menu){ menu.querySelectorAll('a').forEach(function(a){
+    a.addEventListener('click',function(){ nav.classList.remove('open'); });
+    var h=a.getAttribute('href'); if(h&&h.charAt(0)==='#') links[h.slice(1)]=a;
+  }); }
+  var spy=new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        for(var k in links){ links[k].classList.remove('active'); }
+        if(links[e.target.id]) links[e.target.id].classList.add('active');
+      }
+    });
+  },{rootMargin:'-45% 0px -50% 0px'});
+  ['broken','unlock','proof','business','why','team','ask'].forEach(function(id){ var el=document.getElementById(id); if(el) spy.observe(el); });
 })();
 </script>
 </body>
