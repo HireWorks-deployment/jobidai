@@ -6,7 +6,7 @@
 <meta name="robots" content="index, follow">
 <title>Datenschutzerklärung — JobID</title>
 <meta name="description" content="Datenschutzerklärung der JobID GmbH — Informationen zur Verarbeitung personenbezogener Daten gemäß DSGVO.">
-<link rel="canonical" href="https://jobid.ai/datenschutz">
+<link rel="canonical" href="https://jobid.ai/datenschutz.html">
 <meta name="theme-color" content="#0a182a">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
@@ -14,7 +14,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="JobID">
 <meta property="og:locale" content="de">
-<meta property="og:url" content="https://jobid.ai/datenschutz">
+<meta property="og:url" content="https://jobid.ai/datenschutz.html">
 <meta property="og:title" content="Datenschutzerklärung — JobID">
 <meta property="og:image" content="https://jobid.ai/og-image.png">
 <!-- HINWEIS: Frischer Entwurf. Auf jobid.com existierte keine Datenschutzseite zum Übernehmen.
@@ -82,7 +82,7 @@
     <p>Es gilt die jeweils aktuelle, auf dieser Website veröffentlichte Fassung dieser Datenschutzerklärung. Stand: Juni 2026.</p>
 
     <footer>
-      <a href="/impressum">Impressum</a> &nbsp;·&nbsp; <a href="/datenschutz">Datenschutz</a> &nbsp;·&nbsp; © 2026 JobID
+      <a href="/impressum.html">Impressum</a> &nbsp;·&nbsp; <a href="/datenschutz.html">Datenschutz</a> &nbsp;·&nbsp; © 2026 JobID
     </footer>
   </main>
 </body>
