@@ -1,0 +1,5 @@
+# jobid.ai -> jobid.com, dauerhaft (301), Seite auf Seite
+# Quelle: Repo jobidai, .github/jobid-ai-weiterleitung/htaccess
+# Ziel auf dem Webspace: /jobid-ai-weiterleitung/.htaccess (Workflow jobid-ai-weiterleitung.yml)
+RewriteEngine On
+RewriteRule ^(.*)$ https://jobid.com/$1 [R=301,L]
